@@ -1,4 +1,7 @@
 //we use mocha and chai testing library in javascript
+
+//const { assert } = require('console');
+
 //mocha and chai is javascript testing library
 const DaiToken = artifacts.require('DaiToken');
 const DappToken = artifacts.require('DappToken');
@@ -65,6 +68,8 @@ contract('TokenFarm', ([owner, investor]) => {
             let resultAfter;
             let resultStakingBalance;
             let isStaking;
+
+            let result;
             //check investor balance before staking
             resultBefore = await daiToken.balanceOf(investor);
             assert.equal(resultBefore.toString(), tokens('100'), 'investor Mock DAI wallet balance correct before staking');
@@ -88,6 +93,32 @@ contract('TokenFarm', ([owner, investor]) => {
             isStaking = await tokenFarm.isStaking(investor);
             assert.equal(isStaking.toString(), 'true', 'investor is staking');
 
+            //Issue Tokens
+            await tokenFarm.issueTokens({ from : owner });
+
+            //check balances after issuance
+            result = await dappToken.balanceOf(investor);
+            assert.equal(result.toString(), tokens('100'), 'investor DApp token wallet balance correct after issuance');
+
+            //ensure that only owner can issue tokens
+            await tokenFarm.issueTokens({ from: investor }).should.be.rejected;
+
+            //unstake tokens
+            await tokenFarm.unStakeTokens({ from: investor });
+
+            //check result after unstaking
+            result = await daiToken.balanceOf(investor);
+            assert.equal(result.toString(), tokens('100'), 'investor Mock DAI wallet balance correct after unstaking');
+ 
+            result = await daiToken.balanceOf(tokenFarm.address);
+            assert.equal(result.toString(), tokens('0'), 'Token Farm Mock DAI wallet balance correct after unstaking');
+ 
+            result = await tokenFarm.stakingBalance(investor);
+            assert.equal(result.toString(), tokens('0'), 'investor staking balance correct after unstaking');
+ 
+            result = await tokenFarm.isStaking(investor);
+            assert.equal(result.toString(), 'false', 'investor staking status correct after unstaking');
+ 
 
         })
     })
